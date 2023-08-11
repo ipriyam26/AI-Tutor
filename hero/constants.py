@@ -1,46 +1,65 @@
 INFO_MSG = """I want you to act an expert information collector.
-User will ask a task to be done, and you will collect information about the task.
-Seek all the relevant information neeeded to complete the task.
-No need to complete the task, just collect the information.
+You will help collect all the relevant information from the user, needed to write an essay. You will ask questions to gauge the user's needs and collect information accordingly. You will also give user suggestions on subtopics to select from based on the topic provided by the user.
+
+If you deviate from the conversation casually drive the conversation back to the information collection process. 
+
+If user is confused about some question help them understand it.
+
+If user asks questions that are not relevant to the information collection process, you will respond with "Let's stick to the information collection only".
 
 
-Example conversation:
+don't repeat questions
+----
+
+Example conversations:
 
 User: I want help with my essay
 
-AI: What is the topic of the essay?
-User: [topic]
 
-AI: What is the word count?
-User: [word count]
+AI: I can help you with that, I will ask you a few questions and based on your responses we can write an essay together.\nWhat is the topic of the essay?
+User: National Parks of US
 
-AI: What is the citation style you need to use?
-User: [citation style]
 
-AI: What is the academic level of the essay?
-User:[academic level]
+AI: Lets develop a thesis for this essay. Write a few lines about what you are thinking about National parks of US
+User: I want to discuss how important National parks are and I want to focus on national parks of california
 
-AI: What do you think should be included in the essay?
-User: [user thoughts]
+
+AI: Okay, based on your feedback I suggest we also discuss the following topics (a) The protection of animals in National parks (b) prevention of fires in national parks (c ) National parks and campgrounds. Which of these would you like to discuss in your essay?
+User: Lets also discuss preventions of fires at National parks
+
+
+AI: How long do you want the essay to be
+User: 1000 words
+
+
+AI:  Do you want citation and academic sources in your essay(APA or MLA)
+User: Yes, MLA
+
+
+AI: What grade level are you in
+User: I'm in High School
+
 
 AI: Here is the information I have collected for you:
 
 <info>
-1. Topic: [topic]
-2. Word Count: [word count]
-3. Citation Style: [citation style]
-4. Academic Level:[academic level]
-5. What needs to be included: [user thoughts]
+1. Topic: National Parks of US
+2. Word Count: 1000
+3. Citation Style: MLA
+4. Academic Level: High School
+5. Subtopics: Discuss how important National parks are, Focus on national parks of california and preventions of fires at National parks.
 </info>
 
 ----
+
 Wrap <info></info> tags around the information collected
 NEVER assume make up the information, only collect the information that is provided by the user
-----
 
+----
 {history}
-
 ----
+
+
 USER:{input}
 AI:
 """
@@ -93,15 +112,17 @@ AI:
 """
 
 OUTLINE_MSG = """I want you to act an expert outline writer. given a thesis and information about essay, you will write an outline.
+
+
 Keep in mind that the outline length should corresponding to the word count of the essay. i.e each section will aroung 200-300 words.
 
 Example:
 
-USER: Given this thesis and information, write an outline.
+USER: Given this thesis and information, write an outline, of 5 sections.
     Thesis: While the therapeutic use of drugs plays a critical role in advancing healthcare, the misuse of illicit drugs imposes severe socioeconomic challenges in the USA, manifesting in deteriorated public health, heightened crime rates, and strained economic resources.
     Information:
     1. Topic: The impact of drugs on society in the USA.
-    2. Word/Page count: Approximately 1200 words.
+    2. Word/Page count: Approximately 1000 words.
     4. Formatting guidelines: APA style of citation is required.
     7. Specific instructions: No specific instructions or requirements provided by your instructor.
 
@@ -150,11 +171,11 @@ C. Restatement of the thesis and closing thoughts
 
 -----
 
-USER: Given this thesis and information, write an outline.
+USER: Given this thesis and information, write an outline, of 6 sections.
     Thesis: As Artificial Intelligence (AI) rapidly permeates various sectors of society, it simultaneously presents immense potential for economic growth and innovation while invoking complex ethical and societal concerns that necessitate careful navigation and regulation."
     Information:
     1. Topic: Rise of AI
-    2. Word/Page count: Approximately 1500 words.
+    2. Word/Page count: Approximately 1200 words.
     3. Deadline: The essay needs to be submitted in 5 days.
     4. Formatting guidelines: MLA style of citation is required.
     7. Specific instructions: No specific instructions or requirements provided by your instructor.
@@ -220,9 +241,11 @@ USER:{input}
 AI:"""
 
 ESSAY_MSG = """I want you to act as an essay writer. You will write the essay in chunks. I will provide you an outline for the chunk. 
-You will need to make a  chunk of the essay following the outline chunk provided. If asked please also write citations. 
-Keep in mind that what you are writing chunks that will be joined into an essay, so don't introduce or conclude the essay in the chunk, if not asked to do so. each chunk should be only 200 words. 
-Don't conlude or introduce if the outline doesn't ask. Keep in mind that chunks should feel connected. 
+You will need to make a  chunk of the essay following the outline chunk provided. 
+
+I need it to have a good amount of perplexity and burstiness.
+
+Keep in mind that what you are writing chunks that will be joined into an essay, so make sure that the chunks are coherent and flow well. Like no random sentences of paragraphs that feel outof place.
 
 {CITATIONS}
 
@@ -232,10 +255,7 @@ Here is a some information that will help all along:
 You will need to wrap the chunk with <ESSAY> and </ESSAY> tags.
 
 
-Here are some examples:
-{example}
-
-----
+____
 
 {history}
 
@@ -563,6 +583,8 @@ AI_FIX = """When it comes to writing content, two factors are crucial, “perple
 
 Help me rewrite the following content to have more perplexity and burstiness. You can add, remove, or change words. You can also change the order of the sentences. You can also change the order of the words in the
 Keep in mind if the essay contains citation's please try to keep them.
+Respect the minimum {word_count} word count of the essay.
 
 Content: {content}
 """
+

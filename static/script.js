@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatContent = document.getElementById("chat-content");
     const input = document.getElementById("input");
     let loadingMessage;
-    const socket = io.connect('http://localhost:9099');
+    const socket = io.connect('/');
 
     // Event listeners
     socket.on('response', function (data) {
@@ -33,9 +33,11 @@ document.addEventListener("DOMContentLoaded", () => {
     socket.on('essay_part_generated', function (data) {
         const message = data.content;
         updateMessage(loadingMessage, message, false);
+        if (data.part === "Outline" || data.part === "Rating") {
+              input.removeAttribute('disabled');
+        }
     });
-    // socket.on('finised', function (data) {});
-    //when finised event is received, disable the input field, and show the reload button
+
 
     socket.on('finished', function () {
         input.setAttribute('disabled', true);

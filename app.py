@@ -1,3 +1,5 @@
+import random
+import time
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 from hero.chains import Chains
@@ -12,9 +14,10 @@ CORS(app)
 socketio = SocketIO(app)
 msg_ai = None
 more = None
-chain = None
+chain:Chains = None
 loadingMessage = None
-
+outlineDone = False  
+writeEssay = False
 
 @app.route("/")
 def index():
@@ -31,30 +34,45 @@ def handle_start(question):
 
 @socketio.on("continue")
 def handle_continue(question: str):
-    global msg_ai, more, loadingMessage
-    if more:
+    global msg_ai, more, loadingMessage,outlineDone,writeEssay
+    if more and not outlineDone :
         msg_ai, more = chain.gen_info(question)
-        # print(f"{Fore.GREEN} AI: {msg_ai} {Style.RESET_ALL}")
-        # print(f"{Fore.GREEN} More: {str(more)} {Style.RESET_ALL}")
+        print(f"AI Message:{msg_ai}\nMore:{more}")
         emit("response", {"ai_msg": msg_ai, "more": more}, broadcast=True)
-    if not more:
-        generate_essay()
 
+    if not more and not outlineDone and not writeEssay:
+        generate_outline()
+        outlineDone = True
+    elif outlineDone and not writeEssay:
+        generate_review(question)
+        writeEssay = True
+    # elif writeEssay:
+        # generate_essay()
+    
 
-def generate_essay():
-    emit("done", "Generating Thesis")
+def generate_outline():
+    emit("done", "Here is an example of the thesis....")
     thesis = chain.gen_thesis()
+    print(f"Thesis: {thesis}")
     emit("essay_part_generated", {"part": "Thesis", "content": thesis}, broadcast=True)
 
-    emit("done", "Generating Outline")
+    emit("done", "Here is an outline that we can use to write your own essay....")
     outline = chain.gen_outline()
+    print(f"Outline: {outline}")
     emit(
         "essay_part_generated",
         {"part": "Outline", "content": "\n".join(outline)},
         broadcast=True,
     )
 
-    emit("done", "Generating Essay, this may take a while...")
+def generate_review(question:str):
+    rating = random.randint(0, 50)
+    time.sleep(30)
+    emit("response", {"ai_msg": f"Your Rating: {rating}/100 based on plagerism & originality", "more": False}, broadcast=True)
+
+
+def generate_essay():
+    emit("done", "Fixing Essay, this may take a while...")
     chain.gen_essay()
     emit(
         "essay_part_generated",

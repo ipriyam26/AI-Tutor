@@ -1,5 +1,6 @@
 import contextlib
 import enum
+import math
 import os
 import re
 from langchain.embeddings import OpenAIEmbeddings
@@ -8,7 +9,15 @@ from dotenv import load_dotenv
 from langchain.memory import ConversationBufferWindowMemory, ConversationBufferMemory
 from langchain.prompts.example_selector import SemanticSimilarityExampleSelector
 from langchain.chains import LLMChain
-from hero.constants import INFO_MSG, OUTLINE_MSG, ESSAY_MSG, THESIS_MSG, EXAMPLES, examples,AI_FIX
+from hero.constants import (
+    INFO_MSG,
+    OUTLINE_MSG,
+    ESSAY_MSG,
+    THESIS_MSG,
+    EXAMPLES,
+    examples,
+    AI_FIX,
+)
 from langchain.prompts.example_selector import SemanticSimilarityExampleSelector
 
 from langchain.vectorstores import Chroma
@@ -49,7 +58,7 @@ class Chains:
                 template=INFO_MSG, input_variables=["history", "input"]
             ),
             memory=ConversationBufferMemory(),
-            llm=self.model,
+            llm=ChatOpenAI(model="gpt-4", temperature=0)
         )
 
     def get_thesis(self) -> LLMChain:
@@ -77,7 +86,7 @@ class Chains:
                 "user_input",
                 "history",
                 "instruct",
-                "example",
+                # "example",
                 "CITATIONS",
             ],
         ).partial(
@@ -101,10 +110,10 @@ class Chains:
                 return self.extract_info(reply)
         return reply, True
 
-    def extract_info(self, reply:str):
+    def extract_info(self, reply: str):
         self.info = reply.split("<info>")[1].split("</info>")[0]
         word_count_pattern = r"Word Count:\s+(\d+)"
-        #Citation Style: Chicago
+        # Citation Style: Chicago
         citation_pattern = r"Citation Style:\s+(.*)"
         if match := re.search(word_count_pattern, self.info):
             self.word_count = match[1]
@@ -112,7 +121,7 @@ class Chains:
             self.citation = match[1]
 
         self.current_chain = self.get_thesis()
-        
+
         return self.info, False
 
     def gen_thesis(self) -> str:
@@ -129,7 +138,8 @@ class Chains:
 
     def gen_outline(self):
         chain = self.get_outline()
-        msg = f"Given this thesis and information, write an outline.\n    Thesis: {self.thesis}\n    Information:\n    {self.info}. Outline should keep the world limit in mind."
+        section = math.ceil( int(self.word_count)/200)
+        msg = f"Given this thesis and information, write an outline, of {section} sections. \n    Thesis: {self.thesis}\n    Information:\n    {self.info}. Outline should keep the world limit in mind."
 
         for _ in range(5):
             reply = chain.predict(input=msg)
@@ -151,8 +161,11 @@ class Chains:
         for section in self.outline:
             for _ in range(2):
                 with contextlib.suppress(Exception):
-                    example = self.example_selector(section)
-                    essay_section = chain.predict(user_input=section, example=example)
+                    # example = self.example_selector(section)
+                    essay_section = chain.predict(
+                        user_input=section,
+                        # example=example
+                    )
                     essay = re.findall(
                         r"<ESSAY>(.*?)</ESSAY>", essay_section, re.DOTALL
                     )[0]
@@ -221,13 +234,11 @@ class Chains:
         )
         ret = example_selector.select_examples({"input": event})
         return "\n".join([example_prompt.format(**r) for r in ret])
-    
+
     def prevent_ai_detection(self):
-        PROMPT = PromptTemplate(
-            template=AI_FIX, input_variables=["content"]
-        )
+        PROMPT = PromptTemplate(template=AI_FIX, input_variables=["content","word_count"])
         llm = ChatOpenAI(model="gpt-4", temperature=1)
-        return llm.predict(text=PROMPT.format(content=self.essay))
+        return llm.predict(text=PROMPT.format(content=self.essay, word_count=self.word_count))
 
 
 if __name__ == "__main__":
@@ -235,7 +246,10 @@ if __name__ == "__main__":
     msg_ai, more = chain.gen_info("I want help writing an essay")
     while more:
         print(f"AI: {msg_ai}")
-        msg = input("User: ")
+        if "1. Topic" in msg_ai:
+            msg = "Please wrap the info in tags <info> </info>"
+        else:
+            msg = input("User: ")
         msg_ai, more = chain.gen_info(msg)
     print(f"AI: {Fore.CYAN} {msg_ai} {Style.RESET_ALL}")
     print("\n\nGenerating Thesis")
@@ -257,3 +271,4 @@ if __name__ == "__main__":
     # print(f"\n\nEssay Length: {len(rewrite.split(' '))}")
     # # print(f"AI: {Fore.LIGHTRED_EX} {returnn} {Style.RESET_ALL}")
     # print("\n\nEssay word count: ", len(returnn.split(" ")))
+
